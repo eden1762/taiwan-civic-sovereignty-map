@@ -1,14 +1,15 @@
 (function () {
-  const DATA = window.TCSM_DATA;
+  const DATA = window.TCSM_DATA || { categories: [], organizations: [], events: [], sources: [] };
   const taiwanCenter = [23.75, 121.0];
-  const markerLayer = L.layerGroup();
-  const areaLayer = L.layerGroup();
   const markerIndex = new Map();
   const storageKey = "tcsm-lang";
   let activeFilter = "all";
   let searchText = "";
   let currentLang = localStorage.getItem(storageKey) || "zh";
-  let map;
+  let map = null;
+  let markerLayer = null;
+  let areaLayer = null;
+  let mapReady = false;
   let currentItems = [];
   let selectedItemId = null;
 
@@ -19,6 +20,7 @@
   const detailContent = $("#detailContent");
   const searchInput = $("#searchInput");
   const langToggle = $("#langToggle");
+  const focusTaiwan = $("#focusTaiwan");
 
   const i18n = {
     zh: {
@@ -200,8 +202,8 @@
   }
 
   function getAllItems() {
-    const orgs = DATA.organizations.map((item) => ({ ...item, kind: "org" }));
-    const events = DATA.events
+    const orgs = (DATA.organizations || []).map((item) => ({ ...item, kind: "org" }));
+    const events = (DATA.events || [])
       .filter((item) => !eventHasEnded(item))
       .map((item) => ({ ...item, kind: "event" }));
     return [...orgs, ...events];
@@ -233,7 +235,13 @@
     return filterOk && haystack.includes(searchText.toLowerCase().trim());
   }
 
+  function enableMapFallback() {
+    mapReady = false;
+    if (typeof window.TCSM_ENABLE_MAP_FALLBACK === "function") window.TCSM_ENABLE_MAP_FALLBACK();
+  }
+
   function makeIcon(kind) {
+    if (!window.L) return null;
     return L.divIcon({
       className: "",
       iconSize: [34, 34],
@@ -244,14 +252,26 @@
   }
 
   function setupMap() {
-    map = L.map("map", { zoomControl: false, preferCanvas: true }).setView(taiwanCenter, 7);
-    L.control.zoom({ position: "bottomright" }).addTo(map);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
-    areaLayer.addTo(map);
-    markerLayer.addTo(map);
+    if (!window.L) {
+      enableMapFallback();
+      return;
+    }
+
+    try {
+      map = L.map("map", { zoomControl: false, preferCanvas: true }).setView(taiwanCenter, 7);
+      L.control.zoom({ position: "bottomright" }).addTo(map);
+      const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      });
+      tiles.on("tileerror", enableMapFallback);
+      tiles.addTo(map);
+      markerLayer = L.layerGroup().addTo(map);
+      areaLayer = L.layerGroup().addTo(map);
+      mapReady = true;
+    } catch (error) {
+      enableMapFallback();
+    }
   }
 
   function renderStaticText() {
@@ -262,13 +282,15 @@
     document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
       node.setAttribute("placeholder", t(node.dataset.i18nPlaceholder));
     });
-    langToggle.textContent = currentLang === "zh" ? "EN" : "中";
+    if (langToggle) langToggle.textContent = currentLang === "zh" ? "EN" : "中";
+    if (typeof window.TCSM_ENABLE_MAP_FALLBACK === "function" && document.body.classList.contains("map-fallback-mode")) window.TCSM_ENABLE_MAP_FALLBACK();
   }
 
   function renderFilters() {
-    filterRow.innerHTML = DATA.categories.map((filter) => {
+    if (!filterRow) return;
+    filterRow.innerHTML = (DATA.categories || []).map((filter) => {
       const label = currentLang === "en" ? filter.labelEn : filter.label;
-      return `<button type="button" class="filter-chip ${filter.key === activeFilter ? "active" : ""}" data-filter="${filter.key}">${sanitize(label)}</button>`;
+      return `<button type="button" class="filter-chip ${filter.key === activeFilter ? "active" : ""}" data-filter="${sanitize(filter.key)}">${sanitize(label)}</button>`;
     }).join("");
     filterRow.querySelectorAll("button").forEach((button) => {
       button.addEventListener("click", () => {
@@ -286,17 +308,17 @@
   }
 
   function renderMap(items) {
+    if (!mapReady || !markerLayer || !areaLayer || !window.L) return;
     markerLayer.clearLayers();
     areaLayer.clearLayers();
     markerIndex.clear();
 
     items.forEach((item) => {
+      if (typeof item.lat !== "number" || typeof item.lng !== "number") return;
       if (item.kind === "event" && item.radiusMeters) {
         L.circle([item.lat, item.lng], {
           radius: item.radiusMeters,
-          color: "#4dabf7",
           weight: 1.5,
-          fillColor: "#4dabf7",
           fillOpacity: 0.09
         }).addTo(areaLayer);
       }
@@ -345,15 +367,18 @@
       </div>
     `;
 
-    if (!fromMap && markerIndex.has(item.id)) {
+    if (!fromMap && mapReady && markerIndex.has(item.id)) {
       const marker = markerIndex.get(item.id);
       map.setView(marker.getLatLng(), item.kind === "event" ? 15 : 16, { animate: true });
       marker.openPopup();
+      document.getElementById("map-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (!fromMap) {
       document.getElementById("map-panel").scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
 
   function renderCards(items) {
+    if (!cardGrid) return;
     if (!items.length) {
       cardGrid.innerHTML = `<article class="data-card"><h3>${sanitize(t("noResultTitle"))}</h3><p>${sanitize(t("noResultText"))}</p></article>`;
       return;
@@ -386,7 +411,8 @@
 
   function renderSources() {
     const sourceLinks = $("#sourceLinks");
-    sourceLinks.innerHTML = DATA.sources.map((source) => link(source.url, currentLang === "en" && source.titleEn ? source.titleEn : source.title)).join("");
+    if (!sourceLinks) return;
+    sourceLinks.innerHTML = (DATA.sources || []).map((source) => link(source.url, currentLang === "en" && source.titleEn ? source.titleEn : source.title)).join("");
   }
 
   function render() {
@@ -403,18 +429,25 @@
   }
 
   function setupEvents() {
-    searchInput.addEventListener("input", (event) => {
-      searchText = event.target.value;
-      render();
-    });
-    $("#focusTaiwan").addEventListener("click", () => {
-      map.setView(taiwanCenter, 7, { animate: true });
-    });
-    langToggle.addEventListener("click", () => {
-      currentLang = currentLang === "zh" ? "en" : "zh";
-      localStorage.setItem(storageKey, currentLang);
-      render();
-    });
+    if (searchInput) {
+      searchInput.addEventListener("input", (event) => {
+        searchText = event.target.value;
+        render();
+      });
+    }
+    if (focusTaiwan) {
+      focusTaiwan.addEventListener("click", () => {
+        if (mapReady && map) map.setView(taiwanCenter, 7, { animate: true });
+        else enableMapFallback();
+      });
+    }
+    if (langToggle) {
+      langToggle.addEventListener("click", () => {
+        currentLang = currentLang === "zh" ? "en" : "zh";
+        localStorage.setItem(storageKey, currentLang);
+        render();
+      });
+    }
   }
 
   window.addEventListener("DOMContentLoaded", () => {
