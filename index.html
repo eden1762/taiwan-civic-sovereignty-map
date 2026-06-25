@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#061826" />
-  <meta name="description" content="台灣公民與主權地圖｜Taiwan Civic &amp; Sovereignty Map：以公開資料整理台灣公民、民主、主權、國家正常化相關組織與公開活動資訊。" />
+  <meta name="description" content="台灣公民與主權地圖｜Taiwan Civic &amp; Sovereignty Map：用公開資料整理台灣民主、主權、公民倡議相關組織、活動入口與查證來源。" />
   <title>台灣公民與主權地圖｜Taiwan Civic &amp; Sovereignty Map</title>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
@@ -12,48 +12,54 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <header class="topbar" aria-label="網站標題與操作">
+  <header class="topbar" aria-label="網站標題與導覽">
     <a class="brand" href="#home" aria-label="回到首頁">
       <span class="brand-mark">台</span>
       <span>
-        <strong>台灣公民與主權地圖</strong>
+        <strong data-i18n="brandTitle">台灣公民與主權地圖</strong>
         <small>Taiwan Civic &amp; Sovereignty Map</small>
       </span>
     </a>
     <nav class="quick-nav" aria-label="快速導覽">
-      <a href="#map-panel">地圖</a>
-      <a href="#list-panel">名單</a>
-      <a href="#source-panel">資料來源</a>
-      <a href="#maintain-panel">維護</a>
+      <a href="#map-panel" data-i18n="navMap">地圖</a>
+      <a href="#list-panel" data-i18n="navList">資料卡</a>
+      <a href="#source-panel" data-i18n="navSources">查證來源</a>
+      <a href="#maintain-panel" data-i18n="navUpdate">更新方式</a>
     </nav>
   </header>
+
+  <div class="floating-actions" aria-label="固定快速選項">
+    <a class="float-action" href="https://taiwan-civic-sovereignty-map.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="Instagram 入口">IG</a>
+    <button class="float-action" id="langToggle" type="button" aria-label="切換中文英文">EN</button>
+  </div>
 
   <main id="home">
     <section class="hero" aria-label="網站介紹">
       <div class="hero-copy">
-        <p class="eyebrow">Open data, civic safety, mobile first.</p>
-        <h1>用一張台灣地圖，看懂本土／民主／主權相關公開組織與活動。</h1>
-        <p class="hero-text">本網站只整理公開登記資料與主辦方公開公告，讓台灣公民、主權派人士、中立人士、守法人士與年輕人都能快速理解：誰在辦、在哪裡、訴求是什麼、怎麼查證。</p>
+        <p class="eyebrow" data-i18n="heroEyebrow">公開資料・守法參與・快速查證</p>
+        <h1 data-i18n="heroTitle">用一張地圖，看懂台灣民主、主權、公民倡議的公開資訊。</h1>
+        <p class="hero-text" data-i18n="heroText">這裡整理可公開查證的政黨、協會、基金會、活動入口與新聞來源。重點是讓獨派朋友、中立讀者、守法公民與年輕人都能快速理解：誰在辦、在哪裡、怎麼查、參與前要注意什麼。</p>
         <div class="hero-actions">
-          <a class="primary-button" href="#map-panel">開始看地圖</a>
-          <button class="ghost-button" id="focusTaiwan" type="button">地圖回台灣</button>
+          <a class="primary-button" href="#map-panel" data-i18n="heroPrimary">開始看地圖</a>
+          <button class="ghost-button" id="focusTaiwan" type="button" data-i18n="heroSecondary">地圖回台灣</button>
         </div>
       </div>
-      <aside class="principle-card" aria-label="第一性原則設計">
-        <h2>第一性原則</h2>
-        <p>不堆功能，先回答三個問題：資料哪裡來？活動怎麼參加？是否安全守法？</p>
-        <ul>
-          <li>只收公開、可查證資料</li>
-          <li>手機優先，載入要快</li>
-          <li>資料集中在一個檔案，維護不燒腦</li>
-        </ul>
+      <aside class="trust-card" aria-label="網站守則">
+        <h2 data-i18n="trustTitle">查得到、看得懂、守得住界線</h2>
+        <p data-i18n="trustText">只整理公開來源，不放私人住址、不公開聚會、不做個人追蹤。活動狀態會依日期自動整理，已結束活動不顯示，避免資訊過期。</p>
+        <div class="trust-pills">
+          <span data-i18n="pill1">公開可查</span>
+          <span data-i18n="pill2">守法安全</span>
+          <span data-i18n="pill3">手機友善</span>
+          <span data-i18n="pill4">資訊不迷路</span>
+        </div>
       </aside>
     </section>
 
     <section class="control-strip" aria-label="搜尋與篩選">
       <label class="search-box">
-        <span>搜尋組織、地址、訴求</span>
-        <input id="searchInput" type="search" placeholder="例如：台灣基進、制憲、青年營、台北" autocomplete="off" />
+        <span data-i18n="searchLabel">搜尋組織、地址、活動、主題</span>
+        <input id="searchInput" type="search" data-i18n-placeholder="searchPlaceholder" placeholder="例如：制憲、青年、台北、g0v、活動通" autocomplete="off" />
       </label>
       <div class="filter-row" id="filterRow" aria-label="資料篩選"></div>
     </section>
@@ -62,59 +68,59 @@
       <div class="map-shell">
         <div id="map" role="application" aria-label="OpenStreetMap 台灣組織與活動地圖"></div>
         <div class="map-legend" aria-label="圖例">
-          <span><i class="dot org"></i>公開組織</span>
-          <span><i class="dot event"></i>公開活動</span>
-          <span><i class="dot area"></i>活動範圍</span>
+          <span><i class="dot org"></i><b data-i18n="legendOrg">公開組織</b></span>
+          <span><i class="dot event"></i><b data-i18n="legendEvent">活動／入口</b></span>
+          <span><i class="dot area"></i><b data-i18n="legendArea">活動範圍</b></span>
         </div>
       </div>
       <aside class="detail-panel" aria-label="點選項目詳細資訊">
         <div class="panel-head">
-          <p class="eyebrow">Click marker, get context.</p>
-          <h2 id="detailTitle">點地圖上的標記看詳細資訊</h2>
+          <p class="eyebrow" data-i18n="detailEyebrow">點一下，看重點</p>
+          <h2 id="detailTitle" data-i18n="detailTitle">點地圖上的標記看詳細資訊</h2>
         </div>
         <div id="detailContent" class="detail-content">
-          <p>你可以看到主辦方、協辦方、訴求、公開地址、活動時間、參加資格與活動連結。資訊以官方公告為準，請出發前再次確認。</p>
+          <p data-i18n="detailText">你可以看到公開地址、活動範圍、主辦方、協辦方、主題、日期、參加資格與查證連結。出發前請再看一次官方公告，才不會白跑。</p>
         </div>
       </aside>
     </section>
 
     <section class="list-section" id="list-panel" aria-label="資料卡片列表">
       <div class="section-title">
-        <p class="eyebrow">Data cards</p>
-        <h2>公開資料卡</h2>
-        <p>點選卡片即可在地圖定位。活動類資料會用範圍圈提醒「可能活動區域」，不是追蹤私人行程。</p>
+        <p class="eyebrow" data-i18n="cardsEyebrow">分類切換，資訊不塞車</p>
+        <h2 data-i18n="cardsTitle">公開資料卡</h2>
+        <p data-i18n="cardsText">資料量增加時，請用上方分類與搜尋快速切換；地圖只顯示目前篩選結果，手機瀏覽也能保持順。</p>
       </div>
       <div class="card-grid" id="cardGrid"></div>
     </section>
 
     <section class="source-section" id="source-panel" aria-label="資料來源與守法界線">
       <div class="source-card">
-        <h2>資料來源與守法界線</h2>
-        <p>本網站預設採用政府登記、政黨官網、組織官網與公開活動報名頁。只放「公開地址」與「公開活動」，不放私人住址、不公開聚會、不做個人追蹤。</p>
+        <h2 data-i18n="sourceTitle">可查證來源清單</h2>
+        <p data-i18n="sourceText">資料優先參考政府登記、政黨官網、組織官網、公開活動頁、公開新聞與事實查核平台。社群貼文可當線索，正式地址與活動細節仍以官方公告為準。</p>
         <div class="source-links" id="sourceLinks"></div>
       </div>
       <div class="source-card soft">
-        <h2>資訊可能變動</h2>
-        <p>政黨、協會、基金會地址與活動時間都可能更新；每張資料卡都有「更新狀態」與「官方連結」。出門前請再查一次，才不會白跑，no wasted trip。</p>
+        <h2 data-i18n="boundaryTitle">活動狀態怎麼判斷？</h2>
+        <p data-i18n="boundaryText">已結束活動會自動隱藏；尚未開始、籌備中或報名中的活動，會跟公開活動一起顯示。若只有入口頁，會標成「活動入口」，不假裝成單一場次。</p>
       </div>
     </section>
 
-    <section class="maintain-section" id="maintain-panel" aria-label="維護說明">
+    <section class="maintain-section" id="maintain-panel" aria-label="更新方式">
       <div>
-        <p class="eyebrow">Easy maintenance</p>
-        <h2>維護方式：只改 data.js</h2>
-        <p>這個網站沒有 React、沒有 build、沒有 dist。你要新增或刪除資料，只要打開 <code>data.js</code>，修改 <code>organizations</code> 或 <code>events</code> 陣列即可。</p>
+        <p class="eyebrow" data-i18n="maintainEyebrow">給維護者</p>
+        <h2 data-i18n="maintainTitle">每筆資料都要能回到公開來源</h2>
+        <p data-i18n="maintainText">新增資料時，請同時放入名稱、公開位置或活動範圍、主辦方、協辦方、開始日期、結束日期、參加資格、查證連結與更新狀態。地址不確定就先標成待覆核，不要硬放精準點。</p>
       </div>
       <ol class="steps">
-        <li><strong>新增組織：</strong>複製一筆 organization，改名稱、地址、座標、來源連結。</li>
-        <li><strong>新增活動：</strong>複製一筆 event，改日期、位置、資格、報名網址。</li>
-        <li><strong>部署：</strong>把檔案推到 GitHub 連 Vercel，或直接 Vercel 匯入此資料夾。</li>
+        <li data-i18n="step1">先確認來源是否公開、合法、可追溯。</li>
+        <li data-i18n="step2">再確認地點是否為公開地址或公開活動範圍。</li>
+        <li data-i18n="step3">活動結束後，請填入結束日期；網站會自動不顯示。</li>
       </ol>
     </section>
   </main>
 
   <footer class="footer">
-    <p>台灣公民與主權地圖｜Taiwan Civic &amp; Sovereignty Map · Public info only · Built for civic clarity.</p>
+    <p data-i18n="footerText">台灣公民與主權地圖｜公開資料整理，不追蹤私人行程。</p>
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
