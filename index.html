@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="./styles.css" />
   <style>
-    .map-fallback-card{display:none;position:absolute;inset:1rem;z-index:5;border:1px solid rgba(255,255,255,.18);border-radius:24px;background:rgba(6,24,38,.92);backdrop-filter:blur(16px);color:#fff;padding:1.2rem;box-shadow:0 24px 80px rgba(0,0,0,.3);overflow:auto}.map-fallback-card h2{margin:.2rem 0 .55rem;font-size:clamp(1.25rem,5vw,2rem)}.map-fallback-card p{line-height:1.65;color:rgba(255,255,255,.82)}.map-fallback-card .mini-list{display:grid;gap:.65rem;margin-top:1rem}.map-fallback-card .mini-item{border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:.8rem;background:rgba(255,255,255,.08)}.map-fallback-card .mini-item b{display:block;margin-bottom:.25rem}.map-fallback-card .mini-item span{display:block;color:rgba(255,255,255,.75);font-size:.92rem}.map-fallback-mode #map{min-height:420px;background:radial-gradient(circle at 18% 20%,rgba(77,171,247,.35),transparent 30%),radial-gradient(circle at 80% 25%,rgba(255,196,87,.25),transparent 34%),linear-gradient(135deg,#061826,#0b2d48 60%,#10273f)}.map-fallback-mode .map-fallback-card{display:block}.data-health{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;max-width:1180px;margin:0 auto 1.25rem;padding:0 1rem}.data-health-card{border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:1rem;background:rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.18);backdrop-filter:blur(14px)}.data-health-card strong{display:block;font-size:clamp(1.45rem,5vw,2.15rem);letter-spacing:-.04em}.data-health-card span{display:block;color:rgba(255,255,255,.78);font-size:.92rem;line-height:1.45}.map-fallback-card .fallback-tip{margin-top:.8rem;border-top:1px solid rgba(255,255,255,.14);padding-top:.8rem}@media(max-width:900px){.data-health{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.map-fallback-card{inset:.7rem;border-radius:20px;padding:1rem}.map-fallback-card .mini-list{grid-template-columns:1fr}.map-fallback-mode #map{min-height:480px}.data-health{grid-template-columns:1fr;margin-bottom:.9rem}.data-health-card{padding:.9rem}}
+    .map-fallback-card{display:none;position:absolute;inset:1rem;z-index:5;border:1px solid rgba(255,255,255,.18);border-radius:24px;background:rgba(6,24,38,.92);backdrop-filter:blur(16px);color:#fff;padding:1.2rem;box-shadow:0 24px 80px rgba(0,0,0,.3);overflow:auto}.map-fallback-card h2{margin:.2rem 0 .55rem;font-size:clamp(1.25rem,5vw,2rem)}.map-fallback-card p{line-height:1.65;color:rgba(255,255,255,.82)}.map-fallback-card .mini-list{display:grid;gap:.65rem;margin-top:1rem}.map-fallback-card .mini-item{border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:.8rem;background:rgba(255,255,255,.08)}.map-fallback-card .mini-item b{display:block;margin-bottom:.25rem}.map-fallback-card .mini-item span{display:block;color:rgba(255,255,255,.75);font-size:.92rem}.map-fallback-mode #map{min-height:420px;background:radial-gradient(circle at 18% 20%,rgba(77,171,247,.35),transparent 30%),radial-gradient(circle at 80% 25%,rgba(255,196,87,.25),transparent 34%),linear-gradient(135deg,#061826,#0b2d48 60%,#10273f)}.map-fallback-mode .map-fallback-card{display:block}.data-health{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.75rem;max-width:1180px;margin:0 auto 1.25rem;padding:0 1rem}.data-health-card{border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:1rem;background:rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.18);backdrop-filter:blur(14px)}.data-health-card strong{display:block;font-size:clamp(1.45rem,5vw,2.15rem);letter-spacing:-.04em}.data-health-card span{display:block;color:rgba(255,255,255,.78);font-size:.92rem;line-height:1.45}.map-fallback-card .fallback-tip{margin-top:.8rem;border-top:1px solid rgba(255,255,255,.14);padding-top:.8rem}@media(max-width:1100px){.data-health{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:900px){.data-health{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.map-fallback-card{inset:.7rem;border-radius:20px;padding:1rem}.map-fallback-card .mini-list{grid-template-columns:1fr}.map-fallback-mode #map{min-height:480px}.data-health{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:.9rem}.data-health-card{padding:.9rem}}@media(max-width:420px){.data-health{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -153,17 +153,23 @@
       function todayTaipei() {
         return new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()) + "T00:00:00+08:00");
       }
+      function isEndedEvent(item) {
+        if (item.status === "ended") return true;
+        if (!item.endDate) return false;
+        var end = new Date(item.endDate + "T00:00:00+08:00");
+        return !Number.isNaN(end.getTime()) && end < todayTaipei();
+      }
       function activeItems() {
         var data = window.TCSM_DATA || { organizations: [], events: [] };
-        var now = todayTaipei();
         var orgs = data.organizations.map(function (item) { return Object.assign({ kind: "org" }, item); });
-        var events = data.events.filter(function (item) {
-          if (item.status === "ended") return false;
-          if (!item.endDate) return true;
-          var end = new Date(item.endDate + "T00:00:00+08:00");
-          return Number.isNaN(end.getTime()) || end >= now;
-        }).map(function (item) { return Object.assign({ kind: "event" }, item); });
+        var events = data.events.filter(function (item) { return !isEndedEvent(item); }).map(function (item) { return Object.assign({ kind: "event" }, item); });
         return orgs.concat(events);
+      }
+      function needsLocationReview(item) {
+        var quality = String(item.locationQuality || "") + " " + String(item.freshness || "");
+        var qualityEn = item.en ? String(item.en.locationQuality || "") + " " + String(item.en.freshness || "") : "";
+        var hasPoint = typeof item.lat === "number" && typeof item.lng === "number";
+        return !hasPoint || /待覆核|不確定|uncertain|review/i.test(quality + " " + qualityEn);
       }
       function setFallbackText() {
         var lang = currentLang();
@@ -190,15 +196,20 @@
         var data = window.TCSM_DATA || { organizations: [], events: [], sources: [] };
         var items = activeItems();
         var orgCount = (data.organizations || []).length;
+        var allEvents = data.events || [];
         var eventCount = items.filter(function (item) { return item.kind === "event"; }).length;
         var sourceCount = (data.sources || []).length;
         var mappedCount = items.filter(function (item) { return typeof item.lat === "number" && typeof item.lng === "number"; }).length;
+        var reviewCount = items.filter(needsLocationReview).length;
+        var hiddenEndedCount = allEvents.filter(isEndedEvent).length;
         var zh = currentLang() === "zh";
         var cards = [
           { value: orgCount, label: zh ? "公開組織入口" : "public group entries" },
           { value: eventCount, label: zh ? "未結束活動與入口" : "active events and portals" },
           { value: sourceCount, label: zh ? "查證來源連結" : "verification source links" },
-          { value: mappedCount, label: zh ? "已有公開位置可查" : "mapped public locations" }
+          { value: mappedCount, label: zh ? "已有公開位置可查" : "mapped public locations" },
+          { value: reviewCount, label: zh ? "待覆核定位" : "locations under review" },
+          { value: hiddenEndedCount, label: zh ? "已自動隱藏" : "ended items hidden" }
         ];
         box.innerHTML = cards.map(function (card) { return '<article class="data-health-card"><strong>' + esc(card.value) + '</strong><span>' + esc(card.label) + '</span></article>'; }).join("");
       }
