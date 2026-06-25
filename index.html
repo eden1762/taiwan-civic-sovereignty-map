@@ -10,6 +10,9 @@
   <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .map-fallback-card{display:none;position:absolute;inset:1rem;z-index:5;border:1px solid rgba(255,255,255,.18);border-radius:24px;background:rgba(6,24,38,.92);backdrop-filter:blur(16px);color:#fff;padding:1.2rem;box-shadow:0 24px 80px rgba(0,0,0,.3);overflow:auto}.map-fallback-card h2{margin:.2rem 0 .55rem;font-size:clamp(1.25rem,5vw,2rem)}.map-fallback-card p{line-height:1.65;color:rgba(255,255,255,.82)}.map-fallback-card .mini-list{display:grid;gap:.65rem;margin-top:1rem}.map-fallback-card .mini-item{border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:.8rem;background:rgba(255,255,255,.08)}.map-fallback-card .mini-item b{display:block;margin-bottom:.25rem}.map-fallback-card .mini-item span{display:block;color:rgba(255,255,255,.75);font-size:.92rem}.map-fallback-mode #map{min-height:420px;background:radial-gradient(circle at 18% 20%,rgba(77,171,247,.35),transparent 30%),radial-gradient(circle at 80% 25%,rgba(255,196,87,.25),transparent 34%),linear-gradient(135deg,#061826,#0b2d48 60%,#10273f)}.map-fallback-mode .map-fallback-card{display:block}@media(max-width:720px){.map-fallback-card{inset:.7rem;border-radius:20px;padding:1rem}.map-fallback-card .mini-list{grid-template-columns:1fr}.map-fallback-mode #map{min-height:480px}}
+  </style>
 </head>
 <body>
   <header class="topbar" aria-label="網站標題與導覽">
@@ -67,6 +70,12 @@
     <section class="map-layout" id="map-panel" aria-label="台灣地圖與資訊面板">
       <div class="map-shell">
         <div id="map" role="application" aria-label="OpenStreetMap 台灣組織與活動地圖"></div>
+        <div class="map-fallback-card" id="mapFallback" role="status" aria-live="polite">
+          <p class="eyebrow" data-fallback-zh="地圖暫時不穩・資料照樣可查" data-fallback-en="Map is unstable · data stays available">地圖暫時不穩・資料照樣可查</p>
+          <h2 data-fallback-zh="先看重點清單，不讓畫面卡住。" data-fallback-en="Browse the key list first — no frozen screen.">先看重點清單，不讓畫面卡住。</h2>
+          <p data-fallback-zh="如果地圖底圖或地圖元件暫時載入失敗，這裡會直接切到公開資料清單。你仍可搜尋組織、活動、位置、主題與查證來源，出發前再回官方公告確認。" data-fallback-en="If the map layer or map view is temporarily unavailable, this page switches to a public-data list. You can still search groups, events, places, topics, and verification sources, then double-check official notices before going.">如果地圖底圖或地圖元件暫時載入失敗，這裡會直接切到公開資料清單。你仍可搜尋組織、活動、位置、主題與查證來源，出發前再回官方公告確認。</p>
+          <div class="mini-list" id="fallbackMiniList"></div>
+        </div>
         <div class="map-legend" aria-label="圖例">
           <span><i class="dot org"></i><b data-i18n="legendOrg">公開組織</b></span>
           <span><i class="dot event"></i><b data-i18n="legendEvent">活動／入口</b></span>
@@ -123,8 +132,63 @@
     <p data-i18n="footerText">台灣公民與主權地圖｜公開資料整理，不追蹤私人行程。</p>
   </footer>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="./data.js" defer></script>
-  <script src="./app.js" defer></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="./data.js"></script>
+  <script>
+    (function () {
+      function esc(text) {
+        return String(text || "").replace(/[&<>\"']/g, function (ch) {
+          return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];
+        });
+      }
+      function currentLang() {
+        return localStorage.getItem("tcsm-lang") === "en" ? "en" : "zh";
+      }
+      function itemText(item, field) {
+        return currentLang() === "en" && item.en && item.en[field] ? item.en[field] : item[field] || "";
+      }
+      function todayTaipei() {
+        return new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()) + "T00:00:00+08:00");
+      }
+      function activeItems() {
+        var data = window.TCSM_DATA || { organizations: [], events: [] };
+        var now = todayTaipei();
+        var orgs = data.organizations.map(function (item) { return Object.assign({ kind: "org" }, item); });
+        var events = data.events.filter(function (item) {
+          if (item.status === "ended") return false;
+          if (!item.endDate) return true;
+          var end = new Date(item.endDate + "T00:00:00+08:00");
+          return Number.isNaN(end.getTime()) || end >= now;
+        }).map(function (item) { return Object.assign({ kind: "event" }, item); });
+        return orgs.concat(events);
+      }
+      function setFallbackText() {
+        var lang = currentLang();
+        document.querySelectorAll("[data-fallback-zh]").forEach(function (node) {
+          node.textContent = lang === "en" ? node.getAttribute("data-fallback-en") : node.getAttribute("data-fallback-zh");
+        });
+      }
+      function renderFallback() {
+        setFallbackText();
+        var list = document.getElementById("fallbackMiniList");
+        if (!list) return;
+        list.innerHTML = activeItems().slice(0, 8).map(function (item) {
+          return '<div class="mini-item"><b>' + esc(itemText(item, "name")) + '</b><span>' + esc(itemText(item, "address") || itemText(item, "time")) + '</span><span>' + esc(itemText(item, "sourceLabel")) + '</span></div>';
+        }).join("");
+      }
+      function enableFallback() {
+        document.body.classList.add("map-fallback-mode");
+        renderFallback();
+      }
+      window.TCSM_ENABLE_MAP_FALLBACK = enableFallback;
+      window.addEventListener("error", function (event) {
+        if (String(event.message || "").includes("L is not defined") || String(event.filename || "").includes("leaflet")) enableFallback();
+      }, true);
+      setTimeout(function () {
+        if (!window.L) enableFallback();
+      }, 3200);
+    })();
+  </script>
+  <script src="./app.js"></script>
 </body>
 </html>
